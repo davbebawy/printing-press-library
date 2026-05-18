@@ -13,7 +13,7 @@
   "spec_checksum": "sha256:1e283a99efbb9f9a8d66f4f42dc871685012de52ee199e9e80a0f4397e70a025",
   "run_id": "20260512-172123",
   "category": "productivity",
-  "description": "Drive your personal Microsoft 365 inbox from agentic workflows: read, send, sync, and run offline triage analytics like followup, senders, waiting, and digest that no Graph endpoint exposes.",
+  "description": "Drive your personal Microsoft 365 inbox from agents — read, send, sync, and run offline triage analytics that...",
   "mcp_binary": "outlook-email-pp-mcp",
   "mcp_tool_count": 38,
   "mcp_ready": "full",

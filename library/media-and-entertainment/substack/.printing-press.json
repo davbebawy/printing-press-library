@@ -10,7 +10,7 @@
   "spec_format": "internal",
   "spec_checksum": "sha256:30145d63a968758a9cf6e41eeaa6f0289cac74cc9615de6089f74fc86ff81b61",
   "run_id": "20260509-103230",
-  "description": "Run your Substack growth loop from the terminal \u2014 publish, schedule, engage, and measure with cross-table joins no single Substack API call can.",
+  "description": "Run your Substack growth loop from the command line — publish, schedule, engage, and measure with cross-table...",
   "mcp_binary": "substack-pp-mcp",
   "mcp_tool_count": 39,
   "mcp_ready": "partial",
@@ -29,7 +29,7 @@
     {
       "name": "Engagement reciprocity ledger",
       "command": "engage reciprocity",
-      "description": "See net-give/net-take per writer you engage with \u2014 who reciprocates your restacks/comments, who quietly free-rides on yours."
+      "description": "See net-give/net-take per writer you engage with — who reciprocates your restacks/comments, who quietly free-rides on yours."
     },
     {
       "name": "Cadence guard",
@@ -39,7 +39,7 @@
     {
       "name": "Goal-aware best-time recommender",
       "command": "growth best-time",
-      "description": "Top day-of-week \u00d7 hour cells ranked for whichever growth signal you pick (paid subs, likes, restacks, or comments) \u2014 not a single average."
+      "description": "Top day-of-week × hour cells ranked for whichever growth signal you pick (paid subs, likes, restacks, or comments) — not a single average."
     },
     {
       "name": "Hook-pattern miner",
@@ -54,12 +54,12 @@
     {
       "name": "Pod restack scoreboard",
       "command": "growth pod",
-      "description": "Given a list of handles, render a member \u00d7 member engagement matrix \u2014 last 30 days of restacks/comments/likes between every pair."
+      "description": "Given a list of handles, render a member × member engagement matrix — last 30 days of restacks/comments/likes between every pair."
     },
     {
       "name": "Voice fingerprint",
       "command": "voice fingerprint",
-      "description": "Measurable voice profile \u2014 sentence length, em-dash rate, colon-hook rate, hook-line ratios, vocabulary uniqueness \u2014 for any handle, with --diff to compare against another writer."
+      "description": "Measurable voice profile — sentence length, em-dash rate, colon-hook rate, hook-line ratios, vocabulary uniqueness — for any handle, with --diff to compare against another writer."
     }
   ],
   "printer": "chirantan",

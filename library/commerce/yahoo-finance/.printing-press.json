@@ -11,5 +11,6 @@
   "mcp_binary": "yahoo-finance-pp-mcp",
   "mcp_tool_count": 11,
   "mcp_ready": "full",
-  "auth_type": "none"
+  "auth_type": "none",
+  "description": "Quotes, charts, fundamentals, options chains, and a local portfolio/watchlist tracker against Yahoo Finance — no API key, with Chrome-session fallback for rate-limited IPs"
 }

@@ -9,7 +9,7 @@
   "owner": "omar-shahine",
   "printer": "omarshahine",
   "printer_name": "Omar Shahine",
-  "description": "Order Jimmy John's from the terminal — Freaky Fast Rewards stacking, half-order builder, and one-shot reorder.",
+  "description": "First terminal CLI for Jimmy John's ordering — local Unwich conversion, agent-native JSON, every endpoint typed.",
   "spec_format": "openapi3",
   "spec_checksum": "sha256:a6cbc38fc56e4c289ed23a09ef88da8a678be7eec2a5e441a64c38231cf06b0e",
   "spec_source": "browser-sniff",

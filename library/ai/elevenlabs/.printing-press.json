@@ -13,7 +13,7 @@
   "run_id": "20260513T152516Z-e836a3fe",
   "catalog_entry": "elevenlabs",
   "category": "ai",
-  "description": "Generate, transform, transcribe, dub, and manage AI audio, voices, music, and conversational agents with ElevenLabs.",
+  "description": "This is the documentation for the ElevenLabs API. You can use this API to use our service programmatically, this is...",
   "mcp_binary": "elevenlabs-pp-mcp",
   "mcp_tool_count": 302,
   "mcp_ready": "full",

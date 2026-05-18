@@ -9,7 +9,7 @@
   "printer_name": "JimPresting",
   "run_id": "20260512-202201",
   "category": "media-and-entertainment",
-  "description": "Every Substack feature, plus a local SQLite database, full-text search across years of writing, and the only cross-publication portfolio view that exists.",
+  "description": "Every Substack feature, plus a local SQLite database, full-text search across years of writing, and the only...",
   "novel_features": [
     {
       "name": "Portfolio Dashboard",
@@ -24,7 +24,7 @@
     {
       "name": "Subscriber Churn Diff",
       "command": "subscribers churn",
-      "description": "Diff two SQLite snapshots of your subscriber list: who newly subscribed, who unsubscribed, who upgraded free-\u003epaid, who downgraded paid-\u003efree, since a chosen window."
+      "description": "Diff two SQLite snapshots of your subscriber list: who newly subscribed, who unsubscribed, who upgraded free->paid, who downgraded paid->free, since a chosen window."
     },
     {
       "name": "Cross-Sell Candidates",
@@ -39,7 +39,7 @@
     {
       "name": "Bilingual Pair Tracker",
       "command": "posts pairs",
-      "description": "Record EN\u003c-\u003eDE post pairings in a local table. 'posts pair \u003cen\u003e \u003cde\u003e' adds; 'posts pairs --missing' lists posts in one language with no recorded twin in the other."
+      "description": "Record EN<->DE post pairings in a local table. 'posts pair <en> <de>' adds; 'posts pairs --missing' lists posts in one language with no recorded twin in the other."
     },
     {
       "name": "Full-Text Grep",

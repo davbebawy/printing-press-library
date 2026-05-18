@@ -30,5 +30,6 @@
       "command": "bulk-operations",
       "description": "Inspect the current Shopify bulk operation and launch bulk GraphQL export jobs from query text or a query file."
     }
-  ]
+  ],
+  "description": "Operate a Shopify store from the terminal with curated Admin GraphQL commands, local sync, analytics, and bulk exports."
 }

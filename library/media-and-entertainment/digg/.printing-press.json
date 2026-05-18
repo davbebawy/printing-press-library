@@ -11,7 +11,7 @@
   "spec_format": "internal",
   "spec_checksum": "sha256:4605cfe7f157352a4d158f94d022baf20bea43963ad32c9e629c4301b1c4a7d0",
   "run_id": "20260508-234057",
-  "description": "Read-only CLI for Digg — the AI story leaderboard, GitHub feeds, and ingestion pipeline events on digg.com.",
+  "description": "Tail the Digg AI 1000's news cycle from the terminal — read-only, with the full pipeline event stream and...",
   "mcp_binary": "digg-pp-mcp",
   "mcp_tool_count": 3,
   "mcp_public_tool_count": 3,

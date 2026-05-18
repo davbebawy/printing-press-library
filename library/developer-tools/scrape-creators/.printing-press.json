@@ -84,5 +84,6 @@
       "command": "account budget",
       "description": "See how fast you're spending API credits and how many days remain at current pace, fused with the API's own usage history."
     }
-  ]
+  ],
+  "description": "Scrape public social media data from the terminal — profiles, posts, videos, comments, ads, and transcripts across TikTok, Instagram, YouTube, Twitter/X, LinkedIn, Facebook, Reddit, Threads, Bluesky, Pinterest, Snapchat, Twitch, Kick, Truth Social, and 15+ link-in-bio / creator link services."
 }
