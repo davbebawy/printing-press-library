@@ -249,6 +249,30 @@
       }
     },
     {
+      "name": "apify",
+      "category": "developer-tools",
+      "api": "Apify",
+      "description": "Every Apify platform feature, plus a local SQLite store, cross-Actor search, novelty diffing, cost-aware runs, and...",
+      "path": "library/developer-tools/apify",
+      "printer": "kjmagnan1s",
+      "printer_name": "Kevin Magnan",
+      "mcp": {
+        "binary": "apify-pp-mcp",
+        "transports": [
+          "stdio",
+          "http"
+        ],
+        "tool_count": 231,
+        "public_tool_count": 11,
+        "auth_type": "bearer_token",
+        "env_vars": [
+          "APIFY_TOKEN"
+        ],
+        "mcp_ready": "full",
+        "spec_format": "openapi3"
+      }
+    },
+    {
       "name": "archive-is",
       "category": "media-and-entertainment",
       "api": "Archive.today",
