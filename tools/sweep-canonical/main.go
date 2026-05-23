@@ -243,10 +243,14 @@ func findCLIDirs(libraryRoot string) ([]string, error) {
 type sweepStatus string
 
 const (
-	statusUnchanged  sweepStatus = "unchanged" // both files already at canonical shape
-	statusSkillOnly  sweepStatus = "skill-only"
-	statusReadmeOnly sweepStatus = "readme-only"
-	statusBoth       sweepStatus = "both"
+	statusUnchanged       sweepStatus = "unchanged" // every file already at canonical shape
+	statusSkillOnly       sweepStatus = "skill-only"
+	statusReadmeOnly      sweepStatus = "readme-only"
+	statusBoth            sweepStatus = "both"
+	statusAgentcookieOnly sweepStatus = "agentcookie-only"
+	statusBothPlusAC      sweepStatus = "skill+readme+agentcookie"
+	statusReadmePlusAC    sweepStatus = "readme+agentcookie"
+	statusSkillPlusAC     sweepStatus = "skill+agentcookie"
 )
 
 const minimumGoVersion = "Go 1.26.3 or newer"
@@ -339,7 +343,15 @@ func sweepCLI(cliDir, ownerName string, readmeOnly bool) (sweepStatus, error) {
 	}
 
 	readmeChanged := readmeAfter != string(readmeBefore)
-	if !skillChanged && !readmeChanged {
+	// Probe whether agentcookie.toml would change so we can fast-return
+	// statusUnchanged when nothing at all is dirty. The probe re-renders
+	// against current inputs; the real write happens below inside the
+	// snapshot-tracked block.
+	agentcookieWouldChange, agentcookieProbeErr := agentcookieManifestWouldChange(cliDir)
+	if agentcookieProbeErr != nil {
+		return statusUnchanged, fmt.Errorf("probe agentcookie.toml: %w", agentcookieProbeErr)
+	}
+	if !skillChanged && !readmeChanged && !agentcookieWouldChange {
 		return statusUnchanged, nil
 	}
 
@@ -380,9 +392,34 @@ func sweepCLI(cliDir, ownerName string, readmeOnly bool) (sweepStatus, error) {
 		}{readmePath, readmeBefore})
 	}
 
+	// agentcookie.toml emit. Skipped CLIs (cookie-only, override marker)
+	// silently return changed=false; readability of the per-CLI sweep
+	// line takes priority over surfacing every skip in the status field.
+	agentcookiePath := filepath.Join(cliDir, agentcookieTomlFilename)
+	agentcookieBefore, _ := os.ReadFile(agentcookiePath)
+	agentcookieChanged, agentcookieErr := sweepAgentcookieManifest(cliDir)
+	if agentcookieErr != nil {
+		rollback()
+		return statusUnchanged, fmt.Errorf("emit agentcookie.toml: %w", agentcookieErr)
+	}
+	if agentcookieChanged {
+		written = append(written, struct {
+			path   string
+			before []byte
+		}{agentcookiePath, agentcookieBefore})
+	}
+
 	switch {
+	case skillChanged && readmeChanged && agentcookieChanged:
+		return statusBothPlusAC, nil
 	case skillChanged && readmeChanged:
 		return statusBoth, nil
+	case readmeChanged && agentcookieChanged:
+		return statusReadmePlusAC, nil
+	case skillChanged && agentcookieChanged:
+		return statusSkillPlusAC, nil
+	case agentcookieChanged:
+		return statusAgentcookieOnly, nil
 	case skillChanged:
 		return statusSkillOnly, nil
 	default:
