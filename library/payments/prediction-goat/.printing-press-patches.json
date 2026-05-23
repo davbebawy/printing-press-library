@@ -33,6 +33,26 @@
       "files": ["internal/store/store.go", "internal/store/fts_content_test.go"],
       "validated_outcome": "go test ./internal/store/... passes (91 tests). The new TestFTSContent_PreventsFTSFalsePositives end-to-end test exercises the FTS engine with seeded KXFUSION/KXOSCARCOUNTCONCLAVE/KXBTCMAX100/KXMENWORLDCUP-26-PT fixtures and confirms KXFUSION is excluded from 'oscar' query results.",
       "upstream_issue": "Generator templates for printed CLIs that ship resources_fts should use a curated extractor by default instead of indexing raw JSON; the resource-type-aware key set generalizes to non-prediction-market CLIs as well."
+    },
+    {
+      "id": "live-on-read-freshness",
+      "summary": "Refresh price-bearing fields (yesProbability, yes_ask_dollars, volume_24h_fp, last_price_dollars) from upstream APIs at command time for topic / compare / mispriced / trending / movers / resolving / liquid / new. Surface index age and refresh outcome in meta.price_source and meta.index_synced_at.",
+      "reason": "The local SQLite store is a discovery index but doubled as the price source. A user asking 'what are the odds Lakers win tonight' could be served hours-old cached prices with no signal they were stale. The refresher batches hits by venue and fires one /markets?slug= (Polymarket) or /markets?tickers= (Kalshi) call per venue, replacing cached values on the in-memory hits before serialization. A failed live fetch degrades affected rows to price_source: stale rather than failing the whole command.",
+      "files": [
+        "internal/cli/freshness.go",
+        "internal/cli/freshness_test.go",
+        "internal/cli/topic.go",
+        "internal/cli/compare.go",
+        "internal/cli/mispriced.go",
+        "internal/cli/trending.go",
+        "internal/cli/movers.go",
+        "internal/cli/resolving.go",
+        "internal/cli/liquid.go",
+        "internal/cli/new_markets.go",
+        "internal/cli/agent_context.go"
+      ],
+      "validated_outcome": "go test ./... passes (333 tests, 29 new freshness assertions). agent-context schema_version bumped 3→4 with new top-level freshness block enumerating the commands that emit meta.price_source and the four possible price_source values (live, stale, mixed, index). Human-mode terminal output prints a one-line 'Index synced 14h ago, prices live' footer; --json / --agent mode does not.",
+      "upstream_issue": "Generator template for CLIs that maintain a local discovery index alongside a price-bearing upstream should adopt the live-on-read pattern (refresh ranked candidates from upstream before serialization) by default."
     }
   ]
 }
