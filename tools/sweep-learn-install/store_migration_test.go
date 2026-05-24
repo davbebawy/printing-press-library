@@ -387,3 +387,57 @@ func TestBumpStoreSchemaVersion(t *testing.T) {
 		})
 	}
 }
+
+// TestCanonicalLearnMigrationsBlock_AllCreatesAreClosed pins Bug D from the
+// U14 pilot: the emitted CREATE TABLE / CREATE VIRTUAL TABLE statements must
+// each end with a closing paren. The block compiles as Go regardless, but
+// SQLite rejects unterminated statements at migrate() time with
+// "incomplete input". Walk every backtick-delimited statement in the block
+// and verify the trailing-whitespace-stripped string ends in ")".
+func TestCanonicalLearnMigrationsBlock_AllCreatesAreClosed(t *testing.T) {
+	block := canonicalLearnMigrationsBlock
+	// Extract statements: each is the body between an opening ` and the
+	// matching closing `. The block alternates literal-string segments
+	// (backtick-bounded) with comma separators.
+	stmts := extractBacktickStatements(block)
+	if len(stmts) < 5 {
+		t.Fatalf("expected at least 5 CREATE statements in canonical block, got %d", len(stmts))
+	}
+	for i, stmt := range stmts {
+		trimmed := strings.TrimRight(stmt, " \t\n")
+		if !strings.HasSuffix(trimmed, ")") {
+			t.Errorf("statement %d does not end in ')': last 60 chars = %q", i, lastN(trimmed, 60))
+		}
+	}
+}
+
+// extractBacktickStatements walks the canonical block and returns each
+// backtick-quoted CREATE statement's body in order.
+func extractBacktickStatements(block string) []string {
+	var stmts []string
+	in := false
+	start := 0
+	for i, r := range block {
+		if r != '`' {
+			continue
+		}
+		if !in {
+			in = true
+			start = i + 1
+		} else {
+			in = false
+			body := block[start:i]
+			if strings.Contains(body, "CREATE TABLE") || strings.Contains(body, "CREATE VIRTUAL TABLE") {
+				stmts = append(stmts, body)
+			}
+		}
+	}
+	return stmts
+}
+
+func lastN(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[len(s)-n:]
+}
