@@ -162,6 +162,30 @@
       ],
       "validated_outcome": "go test ./... passes (501 tests, +35 across lookups CRUD, computed kinds, seed counts, v4->v5 migration, teach-lookup CLI). go vet clean. verify_skill.py passes. Fresh DB at v5 inserts 923 entity_lookup rows: country_iso2 (236), country_iso3 (205), country_lowercase (145), NFL/NBA/MLB/MLS team abbrev+lowercase combined (337). Computed-kind Lookup never touches the DB (nil-DB tests pass). User taught rows coexist with seeded rows under the (kind, canonical, value) PK; INSERT OR IGNORE makes re-seeding idempotent.",
       "upstream_issue": "Pending: lift internal/learn/lookups + its seeds subpackage into the generator template as an opt-in 'reference-data' module. The domain-agnostic API surface (Lookup/LookupAll/Upsert/IsComputedKind) plus the seed-file convention (one .go file per domain, []LookupRow at compile time) generalizes to any CLI that benefits from canonical name->code mappings (stock tickers, currency codes, etc.)."
+    },
+    {
+      "id": "recipe-inference-engine",
+      "summary": "Add the search_recipes generalization layer: Extract walks recent search_learnings rows, groups them by structural shape, and writes substitute / substitute-then-search-prefix recipes; Apply substitutes the live query's entity into matching recipes and verifies against resources; recall.go merges recipe hits after the direct-lookup pass. Adds the teach-recipe CLI command for explicit template authorship. Schema v5->v6.",
+      "reason": "Without templating, teaching one country's World Cup ticker (Portugal -> KXMENWORLDCUP-26-PT) leaves every other country needing its own teach. The recipe engine generalizes a learned pattern across the country_iso2 (and other) entity_lookups kinds so a single Portugal+USA teach pair unlocks England, Germany, Brazil, etc. for free. Per docs/plans/2026-05-23-002 section U10; correction from plan: actual on-disk baseline was v5 (not v6), so this bumps v5->v6 not v6->v7.",
+      "files": [
+        "internal/learn/recipes/doc.go",
+        "internal/learn/recipes/store.go",
+        "internal/learn/recipes/store_test.go",
+        "internal/learn/recipes/extract.go",
+        "internal/learn/recipes/extract_test.go",
+        "internal/learn/recipes/apply.go",
+        "internal/learn/recipes/apply_test.go",
+        "internal/learn/recipes/generalization_test.go",
+        "internal/learn/recall.go",
+        "internal/learn/recall_test.go",
+        "internal/cli/teach_recipe.go",
+        "internal/cli/teach.go",
+        "internal/cli/root.go",
+        "internal/store/store.go",
+        "internal/store/learnings_v5_test.go"
+      ],
+      "validated_outcome": "go test ./... passes (562 tests, +26 across recipes CRUD/extract/apply/generalization regression and recall+recipe integration). go vet clean. verify_skill.py passes. Fresh DB at v6 includes search_recipes table; v5->v6 upgrade adds the table via CREATE TABLE IF NOT EXISTS (no backfill needed). Flagship regression: teach Portugal+USA (Kalshi+Polymarket each), call recall on 'odds England wins world cup' — returns Found=true with both KXMENWORLDCUP-26-GB (substitute) and the England Polymarket slug (substitute-then-search-prefix) tagged source='recipe'. Direct teaches outrank recipe hits within the same entity_match tier.",
+      "upstream_issue": "Pending: lift internal/learn/recipes into the generator template alongside lookups + entities + match + normalize. The recipe engine is the most-domain-agnostic of the four: it operates on the abstract LearningRow shape, resolves entities via the lookups package's Lookup/IsComputedKind contract, and verifies candidates via the generic resources table. Future CLIs that ship a discovery index inherit the generalization layer by plugging in their own seed lookups + entity extractor config."
     }
   ]
 }

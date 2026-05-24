@@ -283,6 +283,7 @@ See README.md or the bundled SKILL.md for recipes.`,
 	rootCmd.AddCommand(newVersionCliCmd())
 	rootCmd.AddCommand(newTeachCmd(flags))
 	rootCmd.AddCommand(newTeachLookupCmd(flags))
+	rootCmd.AddCommand(newTeachRecipeCmd(flags))
 	rootCmd.AddCommand(newRecallCmd(flags))
 	rootCmd.AddCommand(newLearningsCmd(flags))
 	rootCmd.AddCommand(newForgetCmd(flags))

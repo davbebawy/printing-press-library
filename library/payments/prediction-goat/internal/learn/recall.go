@@ -37,6 +37,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/learn/recipes"
 )
 
 // jsonUnmarshal aliases json.Unmarshal so callers in this file can
@@ -53,6 +55,24 @@ const (
 	defaultRecallLimit = 10
 	defaultMinConfidence = 1
 )
+
+// Source values written into Hit.Source for the recall envelope.
+// "taught" / "inferred-*" come from search_learnings rows directly.
+// "recipe" marks a hit produced by the U10 generalization layer
+// (recipes.Apply), distinguished from a direct learning so the
+// agent can tell the two apart in {found, results}.
+const (
+	// SourceRecipe is the marker for a Hit synthesized by the recipe
+	// substitution engine rather than read from search_learnings.
+	SourceRecipe = "recipe"
+)
+
+// LearningActionBoost mirrors the action string stored in
+// search_learnings for a default rerank rule. Re-exported here as
+// a const so recall.go can stamp synthetic recipe hits with the
+// same action shape without importing the store package (avoids an
+// import-cycle in the lower layers).
+const LearningActionBoost = "boost"
 
 // Hit is one row in the recall envelope. Field tags mirror the JSON
 // contract the LLM reads; do not rename without updating SKILL.md
@@ -261,6 +281,49 @@ func Recall(ctx context.Context, db *sql.DB, query string, opts Opts) (Result, e
 		return result, fmt.Errorf("recall rows: %w", err)
 	}
 
+	// Generalization layer: after the direct-lookup pass, ask the
+	// recipe engine whether any template applies to this query.
+	// Recipe hits are merged into the results list with
+	// Source="recipe" so the agent can distinguish them from direct
+	// teaches. A direct hit on the same resource_id always wins
+	// (the dedup step below skips a recipe hit that another row
+	// already produced); when the direct pass found nothing AND a
+	// recipe substitution does resolve, recall flips Found=true.
+	//
+	// Errors from Apply are swallowed at this seam: a malformed
+	// recipe row or a lookup table miss isn't worth failing the
+	// whole recall call over. The direct path's results are still
+	// valid; the recipe layer is additive.
+	recipeHits, _ := recipes.Apply(ctx, db, query, normalized.NonEntityNormalized, normalized.Entities, recipes.Opts{
+		JaccardMin: jMin,
+		Limit:      limit,
+	})
+	if len(recipeHits) > 0 {
+		existing := make(map[string]struct{}, len(hits))
+		for _, h := range hits {
+			existing[hitKey(h.ResourceType, h.ResourceID)] = struct{}{}
+		}
+		for _, rh := range recipeHits {
+			key := hitKey(rh.ResourceType, rh.ResourceID)
+			if _, dup := existing[key]; dup {
+				continue
+			}
+			existing[key] = struct{}{}
+			hits = append(hits, Hit{
+				ResourceID:       rh.ResourceID,
+				ResourceType:     rh.ResourceType,
+				Venue:            rh.Venue,
+				Action:           LearningActionBoost,
+				Confidence:       rh.Confidence,
+				MatchScore:       rh.MatchScore,
+				EntityMatch:      EntityMatchExact,
+				ResourceEntities: rh.ResourceEntities,
+				Source:           SourceRecipe,
+				LastObservedAt:   rh.LastObservedAt,
+			})
+		}
+	}
+
 	sortHits(hits)
 	sortHits(mismatches)
 
@@ -464,15 +527,31 @@ func findKalshiChildForEntity(ctx context.Context, db *sql.DB, parentTicker stri
 	return ""
 }
 
-// sortHits orders hits per the U3 ranking contract: entity_match
-// priority, then confidence DESC, then match_score DESC, then
-// last_observed_at DESC.
+// sortHits orders hits per the U3 + U10 ranking contract:
+//
+//  1. entity_match priority: exact > partial > unknown > mismatch
+//  2. within an entity_match tier, direct hits (non-recipe) outrank
+//     recipe hits. The recipe layer's substitution-based "exact"
+//     binding is still a real exact match, but a row a user explicitly
+//     taught is a stronger signal than one the engine inferred via
+//     generalization, so a direct exact wins ties.
+//  3. confidence DESC
+//  4. match_score DESC
+//  5. last_observed_at DESC (newer wins ties)
 func sortHits(hits []Hit) {
 	sort.SliceStable(hits, func(i, j int) bool {
 		pi := entityMatchPriority(hits[i].EntityMatch)
 		pj := entityMatchPriority(hits[j].EntityMatch)
 		if pi != pj {
 			return pi < pj
+		}
+		// Direct teaches outrank recipe-synthesized hits within the
+		// same entity_match tier. sourcePriority returns 0 for
+		// direct hits, 1 for recipe hits.
+		si := sourcePriority(hits[i].Source)
+		sj := sourcePriority(hits[j].Source)
+		if si != sj {
+			return si < sj
 		}
 		if hits[i].Confidence != hits[j].Confidence {
 			return hits[i].Confidence > hits[j].Confidence
@@ -490,6 +569,26 @@ func sortHits(hits []Hit) {
 		}
 		return ai.After(aj)
 	})
+}
+
+// sourcePriority returns the rank-key for a Hit's source. Direct
+// teaches (taught / inferred-*) are 0; recipe-synthesized hits are
+// 1. Unknown / future sources sort with direct teaches by default;
+// a regression that ships a new source string without updating this
+// table fails open rather than silently demoting unrelated hits.
+func sourcePriority(source string) int {
+	if source == SourceRecipe {
+		return 1
+	}
+	return 0
+}
+
+// hitKey is the stable string key used to dedupe direct and recipe
+// hits that point at the same resource. Empty resource_type matches
+// anything in the comparison; some pre-U3 teaches don't carry a
+// type but the resource_id is still unique per row.
+func hitKey(resourceType, resourceID string) string {
+	return resourceType + "|" + resourceID
 }
 
 // entityMatchPriority returns a stable sort key for entity-match

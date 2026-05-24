@@ -32,6 +32,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/learn"
+	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/learn/recipes"
 	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/store"
 )
 
@@ -220,6 +221,27 @@ Disabling: pass --no-learn or set PREDICTION_GOAT_NO_LEARN=true.`,
 			}); err != nil {
 				// Audit failure is non-fatal; the row is already in the DB.
 				writeTeachLog(fmt.Sprintf("teach: audit append: %v", err))
+			}
+
+			// U10: post-teach generalization. Recipe extraction looks
+			// at the most-recent N teaches, groups them by structural
+			// signature, and writes a search_recipes row when a kind
+			// binding holds across every member of a group. The call
+			// is cheap and idempotent (the unique index silences
+			// duplicate triples), so firing it on every teach is
+			// safe even when nothing new is groupable.
+			//
+			// Errors are non-fatal and routed to teach.log alongside
+			// the audit-append failure path: a recipe-extraction
+			// failure is a learning-side optimization miss, not a
+			// reason to fail the underlying teach.
+			//
+			// TODO: when U6 lands the learn.Teach helper, move this
+			// trigger inside that helper so the order
+			// (UpsertLearning -> ValidateResourceShape ->
+			// recipes.Extract) is centralized in one place.
+			if _, extractErr := recipes.Extract(db.DB()); extractErr != nil {
+				writeTeachLog(fmt.Sprintf("teach: recipes.Extract: %v", extractErr))
 			}
 
 			if !quiet && flags.asJSON {

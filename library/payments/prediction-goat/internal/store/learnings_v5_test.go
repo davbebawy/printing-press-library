@@ -66,8 +66,8 @@ func TestMigrate_EntityLookups_FreshDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read schema version: %v", err)
 	}
-	if v != 5 {
-		t.Fatalf("fresh db version = %d, want 5", v)
+	if v != StoreSchemaVersion {
+		t.Fatalf("fresh db version = %d, want %d", v, StoreSchemaVersion)
 	}
 
 	// entity_lookups table must exist with at least the country
@@ -119,8 +119,8 @@ func TestMigrate_EntityLookups_UpgradeFromV4(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read schema version: %v", err)
 	}
-	if v != 5 {
-		t.Fatalf("upgraded db version = %d, want 5", v)
+	if v != StoreSchemaVersion {
+		t.Fatalf("upgraded db version = %d, want %d", v, StoreSchemaVersion)
 	}
 
 	// Table exists and is populated.

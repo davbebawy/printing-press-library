@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/learn"
+	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/learn/recipes"
 	"github.com/mvanhorn/printing-press-library/library/payments/prediction-goat/internal/store"
 )
 
@@ -357,6 +358,121 @@ func TestRecall_EnvelopeShape_JSONStableNullsAndArrays(t *testing.T) {
 	}
 	if containsStr(js, `"mismatches":`) {
 		t.Errorf("envelope should omit mismatches when DebugMismatches=false and empty; got %s", js)
+	}
+}
+
+// TestRecall_RecipeFallback_FoundWithSourceRecipe asserts the U10
+// generalization path: a cold England query against a corpus that
+// has a Portugal+USA recipe should return Found=true via the recipe
+// engine, with the recipe-derived hit tagged source="recipe".
+func TestRecall_RecipeFallback_FoundWithSourceRecipe(t *testing.T) {
+	s := openRecallStore(t)
+	// Seed Portugal + USA + England Kalshi resources, then teach the
+	// first two so Extract derives a recipe.
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-PT", map[string]any{
+		"title": "Portugal cup", "ticker": "KXMENWORLDCUP-26-PT",
+	})
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-US", map[string]any{
+		"title": "USA cup", "ticker": "KXMENWORLDCUP-26-US",
+	})
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-GB", map[string]any{
+		"title": "England cup", "ticker": "KXMENWORLDCUP-26-GB",
+	})
+
+	teachOneRecall := func(query, resourceID string) {
+		t.Helper()
+		n := learn.Normalize(query, learn.DefaultPredictionGoatConfig())
+		if _, _, err := s.UpsertLearning(store.UpsertLearningInput{
+			Query: query, QueryEntities: n.Entities,
+			ResourceID: resourceID, ResourceType: "kalshi_markets",
+			Source: store.LearningSourceTaught,
+		}); err != nil {
+			t.Fatalf("teach %q -> %s: %v", query, resourceID, err)
+		}
+	}
+	teachOneRecall("odds Portugal wins world cup", "KXMENWORLDCUP-26-PT")
+	teachOneRecall("odds USA wins world cup", "KXMENWORLDCUP-26-US")
+
+	// Trigger extraction explicitly. In production this fires from
+	// the CLI teach hook; the recall layer reads recipes either way.
+	if _, err := recipes.Extract(s.DB()); err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+
+	got, err := learn.Recall(context.Background(), s.DB(), "odds England wins world cup", learn.Opts{})
+	if err != nil {
+		t.Fatalf("recall: %v", err)
+	}
+	if !got.Found {
+		t.Fatalf("England recall should be Found=true via recipe; got %+v", got)
+	}
+	var found bool
+	for _, h := range got.Results {
+		if h.ResourceID == "KXMENWORLDCUP-26-GB" && h.Source == "recipe" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("recall results missing recipe-source GB hit; results=%+v", got.Results)
+	}
+}
+
+// TestRecall_DirectAndRecipeMerge_DirectRanksFirst asserts that
+// when a query has both a direct teach AND a recipe match, the
+// direct hit ranks first by source priority (within the same
+// entity_match tier).
+func TestRecall_DirectAndRecipeMerge_DirectRanksFirst(t *testing.T) {
+	s := openRecallStore(t)
+	// Seed Portugal + USA + Spain resources. Teach Portugal+USA so a
+	// recipe forms; also directly teach Spain so the query for Spain
+	// has both a direct match AND a recipe match.
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-PT", map[string]any{
+		"title": "Portugal cup", "ticker": "KXMENWORLDCUP-26-PT",
+	})
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-US", map[string]any{
+		"title": "USA cup", "ticker": "KXMENWORLDCUP-26-US",
+	})
+	seedResource(t, s, "kalshi_markets", "KXMENWORLDCUP-26-ES", map[string]any{
+		"title": "Spain cup", "yes_sub_title": "Spain", "ticker": "KXMENWORLDCUP-26-ES",
+	})
+
+	teachOneRecall := func(query, resourceID string) {
+		t.Helper()
+		n := learn.Normalize(query, learn.DefaultPredictionGoatConfig())
+		if _, _, err := s.UpsertLearning(store.UpsertLearningInput{
+			Query: query, QueryEntities: n.Entities,
+			ResourceID: resourceID, ResourceType: "kalshi_markets",
+			Source: store.LearningSourceTaught,
+		}); err != nil {
+			t.Fatalf("teach %q -> %s: %v", query, resourceID, err)
+		}
+	}
+	teachOneRecall("odds Portugal wins world cup", "KXMENWORLDCUP-26-PT")
+	teachOneRecall("odds USA wins world cup", "KXMENWORLDCUP-26-US")
+	teachOneRecall("odds Spain wins world cup", "KXMENWORLDCUP-26-ES")
+	if _, err := recipes.Extract(s.DB()); err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+
+	got, err := learn.Recall(context.Background(), s.DB(), "odds Spain wins world cup", learn.Opts{})
+	if err != nil {
+		t.Fatalf("recall: %v", err)
+	}
+	if !got.Found {
+		t.Fatalf("Spain recall should be Found=true; got %+v", got)
+	}
+	if len(got.Results) == 0 {
+		t.Fatalf("Spain recall has no results")
+	}
+	if got.Results[0].Source == "recipe" {
+		t.Errorf("first hit is recipe-source; direct teach should outrank it. results=%+v", got.Results)
+	}
+	// The first hit should be the direct teach for ES. Recipe hits
+	// (if any) would target the same ticker and be deduped, so we
+	// expect exactly one Spain hit total.
+	if got.Results[0].ResourceID != "KXMENWORLDCUP-26-ES" {
+		t.Errorf("first hit.ResourceID = %q, want KXMENWORLDCUP-26-ES", got.Results[0].ResourceID)
 	}
 }
 
