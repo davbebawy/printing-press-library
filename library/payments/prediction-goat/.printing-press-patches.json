@@ -324,6 +324,16 @@
         "internal/store/playbooks_test.go"
       ],
       "validated_outcome": "go test ./... passes (649 tests, +15 new across playbooks_test.go: Happy / Idempotent / RejectsEmptyContent / RejectsEmptyFamily / NotesOnly / PartialUpdate / PreserveExistingNotes_Seed / PreserveExistingNotes_EmptyFills / Concurrent (5-way concurrent upsert produces exactly 1 row) / GetPlaybookByFamily_NotFound / AppendPlaybookNotes_InsertsWhenAbsent (leading newlines trimmed on insert) / AppendPlaybookNotes_AppendsToExisting / AppendPlaybookNotes_ConcurrentNoLoss (8 goroutines, all 8 markers survive) / ListPlaybooks_HidesSentinelFamilies / PlaybooksTable_LegacyDBHeal). -race clean on the concurrent-append test."
+    },
+    {
+      "id": "learn-loop-backport-u6-playbook-types-and-resolveslots",
+      "summary": "Add in-process Playbook / PlaybookStep / ResolvedPlaybook types, ParsePlaybook / ParsePlaybookFile / MarshalPlaybook helpers, QueryFamily derivation (returns NonEntityNormalized so teach and recall key consistently), and ResolveSlots with the Greptile-round-3 entity-only candidate pool (a non-entity token that happens to resolve through entity_lookups cannot win a slot intended for a real entity).",
+      "reason": "U6 of the ESPN learn-loop backport (docs/plans/2026-05-25-001). U5 landed the store-layer surface; U6 is the in-process layer the recall envelope (U7) and the teach-playbook CLI (U8) compose against. Ported verbatim from ESPN PR #851 HEAD 9bb0a40a (library/media-and-entertainment/espn/internal/learn/playbooks.go), with the Greptile PR #851 round 3 F2 fix already in place: ResolveSlots' queryTokens pool is restricted to normalized.Entities only and explicitly does NOT include strings.Fields(normalized.NonEntityNormalized). The contract is enforced by TestResolveSlots_OnlyConsidersEntities, which seeds 'ppg' as a secondary alias of an unrelated canonical and constructs a NormalizedQuery directly so 'ppg' stays in NonEntityNormalized while 'portugal' is the only entity — the $COUNTRY slot must bind to 'portugal', not the spurious 'ppg' alias.",
+      "files": [
+        "internal/learn/playbooks.go",
+        "internal/learn/playbooks_test.go"
+      ],
+      "validated_outcome": "go test ./... passes (662 tests, +13 new across playbooks_test.go: ParsePlaybook_HappyPath / ParsePlaybookFile_HappyPath / ParsePlaybookFile_NonExistent / ParsePlaybook_Malformed / ParsePlaybook_Empty / MarshalPlaybook_RoundTrip (full field-by-field) / QueryFamily_UsesNonEntityNormalized / ResolveSlots_SingleEntity (Portugal→Portugal canonical) / ResolveSlots_MultiEntity ($A + $B distinct tokens) / ResolveSlots_UnresolvableSkipped / ResolveSlots_EmptySlots / ResolveSlots_OnlyConsidersEntities (Greptile round 3 F2: 'ppg' aliased in entity_lookups loses to real 'portugal' entity) / ResolveSlots_NilResolver). go vet ./... clean. go build ./... clean."
     }
   ]
 }
