@@ -198,6 +198,15 @@ func refreshMispricedPairs(ctx context.Context, fc freshnessClient, result *misp
 			}
 		}
 		p.Delta = p.PM.YesProbability - p.Kalshi.YesProbability
+		// PATCH(mispriced-refresh-derived-fields): keep YesPercent and
+		// DeltaPercent in sync with the refreshed YesProbability/Delta
+		// so agent-facing JSON never reports yesProbability=0.60
+		// alongside yesPercent=55.0 (the pre-refresh value). Mirrors
+		// the post-refresh recompute already in compare.go. Greptile
+		// P1 on PR #780.
+		p.PM.YesPercent = yesPercent(p.PM.YesProbability)
+		p.Kalshi.YesPercent = yesPercent(p.Kalshi.YesProbability)
+		p.DeltaPercent = roundDelta(p.Delta)
 		// Re-filter on threshold against refreshed prices. We use a
 		// math.Abs comparison consistent with runMispriced. When the
 		// refresh failed for either venue, keep the pair so the user

@@ -263,6 +263,14 @@
       "files": [
         "internal/cli/compare.go"
       ]
+    },
+    {
+      "id": "mispriced-refresh-derived-fields",
+      "summary": "refreshMispricedPairs recomputes YesPercent and DeltaPercent from refreshed YesProbability/Delta so agent-facing JSON stays internally consistent.",
+      "reason": "Same family-of-fields-out-of-sync bug as compare.go: applyLiveValuesIfPresent updated YesProbability but the YesPercent companion and DeltaPercent stayed at pre-refresh values, so a JSON consumer saw yesProbability=0.60 alongside yesPercent=55.0 after a refresh. Same fix shape as compare-refresh-yespercent. Greptile P1 on PR #780.",
+      "files": [
+        "internal/cli/mispriced.go"
+      ]
     }
   ]
 }
