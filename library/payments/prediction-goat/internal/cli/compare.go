@@ -367,6 +367,17 @@ func refreshComparePairs(ctx context.Context, fc freshnessClient, pairs []compar
 				applyLiveValuesIfPresent(v, &pairs[i].Kalshi.YesProbability, &pairs[i].Kalshi.Volume24h, &dummyStatus)
 			}
 		}
+		// PATCH(compare-refresh-yespercent): refresh the sibling
+		// YesPercent field so agent-facing JSON output never shows
+		// yesProbability and yesPercent disagreeing after a live
+		// refresh. Mirrors the topic.go post-refresh loop. Greptile P1
+		// on PR #780.
+		if pairs[i].PM != nil {
+			pairs[i].PM.YesPercent = yesPercent(pairs[i].PM.YesProbability)
+		}
+		if pairs[i].Kalshi != nil {
+			pairs[i].Kalshi.YesPercent = yesPercent(pairs[i].Kalshi.YesProbability)
+		}
 		// Recompute the spread from refreshed prices so DeltaPct never
 		// surfaces a stale value.
 		if pairs[i].PM != nil && pairs[i].Kalshi != nil {

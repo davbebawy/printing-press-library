@@ -255,6 +255,14 @@
         "internal/cli/trending.go",
         "internal/cli/liquid.go"
       ]
+    },
+    {
+      "id": "compare-refresh-yespercent",
+      "summary": "refreshComparePairs recomputes the YesPercent companion field after a live refresh so agent-facing JSON never reports yesProbability and yesPercent disagreeing.",
+      "reason": "The refresh loop updated YesProbability and recomputed DeltaPct but left the cached YesPercent untouched, so JSON output of `compare` showed yesProbability=0.60 alongside yesPercent=55.0 (the pre-refresh value) whenever the live price had moved. Mirrors the post-refresh loop already in topic.go. Greptile P1 on PR #780.",
+      "files": [
+        "internal/cli/compare.go"
+      ]
     }
   ]
 }
