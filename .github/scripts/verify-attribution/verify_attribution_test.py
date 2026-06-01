@@ -112,8 +112,34 @@ class SkillAuthorParsingTest(unittest.TestCase):
         self.assertEqual("Ada Lovelace", verifier.skill_author(commented))
         self.assertEqual(verifier.skill_author(commented), verifier.skill_author(self.PLAIN))
 
+    def test_bom_then_comment_does_not_hide_author(self) -> None:
+        noisy = "\ufeff<!-- // PATCH: note -->\n" + self.PLAIN
+        self.assertEqual("Ada Lovelace", verifier.skill_author(noisy))
+        self.assertEqual(verifier.skill_author(noisy), verifier.skill_author(self.PLAIN))
+
+    def test_multiple_leading_comments_do_not_hide_author(self) -> None:
+        noisy = "<!-- generated header -->\n<!-- // PATCH: note -->\n" + self.PLAIN
+        self.assertEqual("Ada Lovelace", verifier.skill_author(noisy))
+        self.assertEqual(verifier.skill_author(noisy), verifier.skill_author(self.PLAIN))
+
     def test_no_frontmatter_still_returns_none(self) -> None:
         self.assertIsNone(verifier.skill_author("# Foo\n\nNo frontmatter here.\n"))
+
+    def test_attribution_only_correction_on_bom_file_is_not_a_surface_change(self) -> None:
+        # Same BOM on both sides, only the author value changes: normalize must
+        # report no surface change so an attribution-only fix isn't gated.
+        before = "\ufeff" + self.PLAIN
+        after = "\ufeff" + self.PLAIN.replace("Ada Lovelace", "Grace Hopper")
+        self.assertEqual(
+            verifier.normalize_skill_author(before),
+            verifier.normalize_skill_author(after),
+        )
+
+    def test_bom_removal_alone_is_not_a_surface_change(self) -> None:
+        self.assertEqual(
+            verifier.normalize_skill_author("\ufeff" + self.PLAIN),
+            verifier.normalize_skill_author(self.PLAIN),
+        )
 
 
 if __name__ == "__main__":

@@ -150,6 +150,10 @@ def skill_author(text: str | None) -> str | None:
 def normalize_skill_author(text: str | None) -> str | None:
     if text is None:
         return None
+    # Strip the same leading noise as skill_author so that adding/removing a BOM
+    # or leading comment is not itself read as a surface change, and so an
+    # attribution-only correction on such a file doesn't trip the surface gate.
+    text = strip_leading_noise(text)
     fm = FRONTMATTER_RE.match(text)
     if not fm:
         return text
