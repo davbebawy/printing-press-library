@@ -1,11 +1,13 @@
 # icloud-pp-cli
 
-Query your iCloud data from the command line. Reads your Mac's local databases
+Query your Apple iCloud data from the command line. Reads your Mac's local databases
 directly — no Photos.app launch, no API token, no network calls.
 
 **[icloudcli.com](https://icloudcli.com)** · macOS · Apache-2.0
 
 ---
+
+Created by [@matysanchez](https://github.com/matysanchez) (Matias Sanchez Moises).
 
 ## Install
 
@@ -51,6 +53,14 @@ Download a pre-built binary for your platform from the [latest release](https://
 <!-- pp-hermes-install-anchor -->
 ## Install for Hermes
 
+Install the CLI binary first. The installer writes binaries to a per-user managed bin directory by default: `$HOME/.local/bin` on macOS/Linux and `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows.
+
+```bash
+npx -y @mvanhorn/printing-press-library install icloud --cli-only
+```
+
+Then install the focused Hermes skill.
+
 From the Hermes CLI:
 
 ```bash
@@ -63,27 +73,32 @@ Inside a Hermes chat session:
 /skills install mvanhorn/printing-press-library/cli-skills/pp-icloud --force
 ```
 
+Restart the Hermes session or gateway if the newly installed skill is not visible immediately.
+
 ## Install for OpenClaw
 
-Tell your OpenClaw agent (copy this):
+Install both the CLI binary and the focused OpenClaw skill. The installer defaults binaries to a per-user bin directory (`$HOME/.local/bin` on macOS/Linux, `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows):
 
+```bash
+npx -y @mvanhorn/printing-press-library install icloud --agent openclaw
 ```
-Install the pp-icloud skill from https://github.com/mvanhorn/printing-press-library/tree/main/cli-skills/pp-icloud. The skill defines how its required CLI can be installed.
-```
+
+Restart the OpenClaw session or gateway if the newly installed skill is not visible immediately.
 
 ## Quick start
 
 ```bash
-icloud-pp-cli doctor              # verify library is readable
-icloud-pp-cli photos top          # top 25 heaviest files
-icloud-pp-cli photos storage      # breakdown by type and year
-icloud-pp-cli photos stats        # total size + item count
+icloud-pp-cli doctor                            # verify Photos + Messages access
+icloud-pp-cli photos top                        # top 25 heaviest files
+icloud-pp-cli messages list-chats --limit 10    # 10 most-recently-active chats
+icloud-pp-cli messages search "lunch"           # search your message history
 ```
 
 Pipe any command for automatic JSON:
 
 ```bash
 icloud-pp-cli photos top | jq '.[0:5]'
+icloud-pp-cli messages list-chats --agent | jq '[.[] | select(.is_group)]'
 ```
 
 ---
@@ -93,16 +108,34 @@ icloud-pp-cli photos top | jq '.[0:5]'
 ```
 icloud-pp-cli
   photos
-    top        Top N heaviest files (--limit, --type all|photo|video)
-    videos     Largest videos (--limit, --year, --month)
-    storage    Breakdown by media type and year
-    stats      Total items and library size
-  doctor       Verify Photos library is readable
+    top         Top N heaviest files (--limit, --type all|photo|video)
+    videos      Largest videos (--limit, --year, --month)
+    storage     Breakdown by media type and year
+    stats       Total items and library size
+    delete      Move items to Recently Deleted (requires --confirm)
+    download    Export originals to a local folder
+  messages
+    list-chats  Chats ordered by most-recent activity (--limit, --since, --include-empty)
+    search      Full-text search of message bodies (--chat, --handle, --from-me, --since, --until, --limit)
+    stats       Total messages / chats / handles + by-year + top handles
+    export      Export a chat or all chats to JSON (--chat, --out, --since, --until)
+  doctor        Pre-flight: System / Library / Assets / Messages
 ```
 
-All commands accept: `--json` `--compact` `--no-color` `--agent` `--library PATH`
+All commands accept: `--json` `--compact` `--no-color` `--agent`.
+`photos` commands also accept `--library PATH`; `messages` commands accept `--messages-db PATH`.
 
 `--agent` sets `--json --compact --no-color` in one flag — use it in AI workflows.
+
+## Messages: Full Disk Access required
+
+Reading `~/Library/Messages/chat.db` requires macOS Full Disk Access for the
+terminal app invoking the binary. If a messages command fails with
+"Full Disk Access not granted," open System Settings > Privacy & Security >
+Full Disk Access, add your terminal, quit and reopen the terminal, and rerun.
+
+`doctor` reports this automatically — the Messages section shows green when
+FDA is granted and a yellow warning (with remediation) when it is not.
 
 ---
 

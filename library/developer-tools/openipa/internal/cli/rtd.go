@@ -1,4 +1,4 @@
-// Copyright 2026 aborruso. Licensed under Apache-2.0. See LICENSE.
+// Copyright 2026 aborruso and contributors. Licensed under Apache-2.0. See LICENSE.
 // Hand-written addition: rtd command — preserve on regeneration.
 
 package cli
@@ -48,10 +48,10 @@ func newRtdCercaCmd(flags *rootFlags) *cobra.Command {
 
 			body := map[string]any{
 				"nominativoResponsabile": nilIfEmpty(nominativo),
-				"area":                  nilIfEmpty(area),
-				"denominazioneEnte":     nilIfEmpty(ente),
-				"codEnte":               nilIfEmpty(codiceEnte),
-				"categoria":             nilIfEmpty(categoria),
+				"area":                   nilIfEmpty(area),
+				"denominazioneEnte":      nilIfEmpty(ente),
+				"codEnte":                nilIfEmpty(codiceEnte),
+				"categoria":              nilIfEmpty(categoria),
 			}
 
 			var items json.RawMessage
@@ -118,10 +118,10 @@ func newRtdEmailCmd(flags *rootFlags) *cobra.Command {
 			portale := newPortaleClient(flags)
 			body := map[string]any{
 				"nominativoResponsabile": nilIfEmpty(nominativo),
-				"area":                  nilIfEmpty(area),
-				"denominazioneEnte":     nilIfEmpty(ente),
-				"codEnte":               nilIfEmpty(codiceEnte),
-				"categoria":             nilIfEmpty(categoria),
+				"area":                   nilIfEmpty(area),
+				"denominazioneEnte":      nilIfEmpty(ente),
+				"codEnte":                nilIfEmpty(codiceEnte),
+				"categoria":              nilIfEmpty(categoria),
 			}
 
 			var rtdItems json.RawMessage
@@ -160,12 +160,12 @@ func newRtdEmailCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			type rtdEmail struct {
-				Nominativo   string `json:"nominativo"`
-				Ente         string `json:"ente"`
-				Ufficio      string `json:"ufficio"`
-				Email        string `json:"email"`
-				PEC          string `json:"pec"`
-				CodUniOu     string `json:"cod_uni_ou"`
+				Nominativo string `json:"nominativo"`
+				Ente       string `json:"ente"`
+				Ufficio    string `json:"ufficio"`
+				Email      string `json:"email"`
+				PEC        string `json:"pec"`
+				CodUniOu   string `json:"cod_uni_ou"`
 			}
 
 			results := make([]rtdEmail, 0, len(rtdList))
@@ -181,22 +181,13 @@ func newRtdEmailCmd(flags *rootFlags) *cobra.Command {
 				}
 
 				if codUni != "" {
-					uoRaw, _, uoErr := ws.Post("/WS06_OU_CODUNI.php", map[string]any{"COD_UNI_OU": codUni})
+					uoRaw, _, uoErr := ws.Post("/ws/WS06OUCODUNIServices/api/WS06_OU_COD_UNI", map[string]any{"COD_UNI_OU": codUni})
 					if uoErr != nil {
 						fmt.Fprintf(os.Stderr, "warning: WS06 failed for %s: %v\n", codUni, uoErr)
-					} else {
-						var uoWrap struct {
-							Data []struct {
-								DesOU string `json:"des_ou"`
-								Mail1 string `json:"mail1"`
-								Mail2 string `json:"mail2"`
-							} `json:"data"`
-						}
-						if json.Unmarshal(uoRaw, &uoWrap) == nil && len(uoWrap.Data) > 0 {
-							r.Ufficio = uoWrap.Data[0].DesOU
-							r.Email = uoWrap.Data[0].Mail1
-							r.PEC = uoWrap.Data[0].Mail2
-						}
+					} else if items := ipaExtractItems(uoRaw); len(items) > 0 {
+						r.Ufficio, _ = items[0]["des_ou"].(string)
+						r.Email, _ = items[0]["mail1"].(string)
+						r.PEC, _ = items[0]["mail2"].(string)
 					}
 				}
 				results = append(results, r)

@@ -1,4 +1,4 @@
-// Copyright 2026 aborruso. Licensed under Apache-2.0. See LICENSE.
+// Copyright 2026 aborruso and contributors. Licensed under Apache-2.0. See LICENSE.
 
 package cli
 
@@ -72,7 +72,7 @@ SDI per una lista di enti PA in un solo passaggio.`,
 				func(cf string) string { return cf },
 				func(_ context.Context, cfVal string) (batchSFEResult, error) {
 					res := batchSFEResult{CF: cfVal}
-					raw, _, callErr := c.Post("/WS01_SFE_CF.php", map[string]any{"CF": cfVal})
+					raw, _, callErr := c.Post("/ws/WS01SFECFServices/api/WS01_SFE_CF", map[string]any{"CF": cfVal})
 					if callErr != nil {
 						res.Error = callErr.Error()
 						res.Status = "error"

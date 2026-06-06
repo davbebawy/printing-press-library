@@ -59,6 +59,8 @@ openipa-pp-cli enti tree agid --json
 openipa-pp-cli uo list --codice agid --json
 ```
 
+Created by [@aborruso](https://github.com/aborruso) (aborruso).
+
 ## Install
 
 The recommended path installs both the `openipa-pp-cli` binary and the `pp-openipa` agent skill (Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, and other agents supported by the upstream [`skills`](https://github.com/vercel-labs/skills) CLI) in one shot:
@@ -103,6 +105,14 @@ Download a pre-built binary for your platform from the [latest release](https://
 <!-- pp-hermes-install-anchor -->
 ## Install for Hermes
 
+Install the CLI binary first. The installer writes binaries to a per-user managed bin directory by default: `$HOME/.local/bin` on macOS/Linux and `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows.
+
+```bash
+npx -y @mvanhorn/printing-press-library install openipa --cli-only
+```
+
+Then install the focused Hermes skill.
+
 From the Hermes CLI:
 
 ```bash
@@ -115,13 +125,17 @@ Inside a Hermes chat session:
 /skills install mvanhorn/printing-press-library/cli-skills/pp-openipa --force
 ```
 
+Restart the Hermes session or gateway if the newly installed skill is not visible immediately.
+
 ## Install for OpenClaw
 
-Tell your OpenClaw agent (copy this):
+Install both the CLI binary and the focused OpenClaw skill. The installer defaults binaries to a per-user bin directory (`$HOME/.local/bin` on macOS/Linux, `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows):
 
+```bash
+npx -y @mvanhorn/printing-press-library install openipa --agent openclaw
 ```
-Install the pp-openipa skill from https://github.com/mvanhorn/printing-press-library/tree/main/cli-skills/pp-openipa. The skill defines how its required CLI can be installed.
-```
+
+Restart the OpenClaw session or gateway if the newly installed skill is not visible immediately.
 
 ## Use with Claude Desktop
 
@@ -300,8 +314,10 @@ Run `openipa-pp-cli --help` for the full command reference and flag list.
 
 Aree Organizzative Omogenee degli enti
 
+- **`openipa-pp-cli aoo cerca`** - Dati di una AOO per codice univoco IPA (WS18) — richiede `cod_uni_aoo` tipo "A463BFE", non il cod_aoo testuale
 - **`openipa-pp-cli aoo get`** - AOO di un ente con filtro opzionale per codice AOO
 - **`openipa-pp-cli aoo list`** - Lista delle AOO di un ente
+- **`openipa-pp-cli aoo storico`** - Lista AOO di un ente (attive e cessate) per codice IPA; espone `cod_uni_aoo` (WS19)
 
 ### cerca
 
@@ -340,6 +356,14 @@ Nodi di Smistamento Ordini (NSO) per ordini elettronici
 
 - **`openipa-pp-cli nso cf`** - Nodi NSO per codice fiscale ente
 - **`openipa-pp-cli nso ente`** - Canali NSO attivi di un ente per codice IPA
+
+### pec
+
+Indirizzi PEC degli enti IPA
+
+- **`openipa-pp-cli pec ente`** - PEC attive di un ente per codice IPA (WS20)
+- **`openipa-pp-cli pec storico`** - Storico PEC di un ente (attive e cessate) per codice IPA (WS21)
+- **`openipa-pp-cli pec cerca`** - Storia di un indirizzo PEC specifico nell'IPA (WS22)
 
 ### uo
 
@@ -432,7 +456,7 @@ Environment variables:
 
 - **Errore 902: Parametro AUTH_ID errato** — export IPA_auth_id=<tuo_auth_id> oppure registra un nuovo AUTH_ID su indicepa.gov.it
 - **Errore 900: Parametro AUTH_ID mancante** — Imposta la variabile d'ambiente IPA_auth_id o aggiungi auth_id al file ~/.config/openipa/config.toml
-- **HTTP 500 su comandi pec** — I web service WS20/WS21/WS22 di IPA hanno instabilità note; riprova più tardi o usa openipa sync per i dati bulk
+- **`aoo cerca` richiede cod_uni_aoo, non cod_aoo** — Il codice da passare è l'identificatore univoco IPA a 7 caratteri (es. `A463BFE`), non il cod_aoo testuale dell'ente (es. `agid_aoo`). Per trovarlo: `openipa-pp-cli aoo storico <cod_amm> --json | jq '.[].cod_uni_aoo'`
 - **Nessun risultato da 'enti cerca'** — Usa parole parziali (es. 'Roma' non 'Comune di Roma'); esegui 'openipa sync' per abilitare ricerca FTS offline
 
 ---

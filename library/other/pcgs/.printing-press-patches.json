@@ -199,6 +199,52 @@
       "findings_addressed": ["F1"],
       "patch_count": 4,
       "validated_outcome": "go build ./... && go vet ./... && go test ./internal/cli/... -run TestIsMachineOutputMode all PASS; smoke: `pcgs-pp-cli --quota --json 2>/dev/null | wc -c` returns 0."
+    },
+    {
+      "id": "coin-response-transforms",
+      "summary": "Adds applyCoinResponseTransforms (new internal/cli/coin_response_transform.go): rewrites PriceGuideValue=0 to null on every coin record so unpriced modern slabs (David Hall FDI, brand-new releases) don't silently undercount in sums, and injects a top-level year_mismatch={name_year,year_field} when the year prefix parsed from Name disagrees with the Year field. Wired into coin facts-cert, coin facts-grade, and coin batch (live + cached paths).",
+      "reason": "PCGS returns PriceGuideValue=0 for unpriced bullion (4-of-31 certs on the 2026-05-18 inventory pass); mathematically indistinguishable from a zero-valued coin. PCGS also occasionally returns Name='2022-S ...' with Year=2021 (2-of-31 certs same pass); silent disagreement forces the agent to pick one field as canonical without knowing which. Both are documented in AGENTS.md P3 and P4 with the locked-in fixes used here.",
+      "files": [
+        "internal/cli/coin_response_transform.go",
+        "internal/cli/coin_facts-cert.go",
+        "internal/cli/coin_facts-grade.go",
+        "internal/cli/coin_batch.go"
+      ],
+      "validated_outcome": "go build ./... && go vet ./...; live smoke against pcgs-coin-list.csv (53972744 → PriceGuideValue=null; 45987467 → year_mismatch populated; 50483263 → PriceGuideValue numeric, year_mismatch absent)"
+    },
+    {
+      "id": "facts-cert-flat-shape",
+      "summary": "coin facts-cert now emits the same flat object shape that coin batch produces per JSONL line: {\"cert_no\": <n>, \"data\": {...coin fields...}, \"_keep\": {}}. Replaces the prior {meta, results} envelope (provenance moves to a stderr-only printProvenance line in TTY mode).",
+      "reason": "Previously the two surfaces emitted different shapes: facts-cert wrapped under meta+results while batch already used {cert_no, data, _keep}. An agent that knew how to parse one couldn't reuse that code for the other, and there was no _keep equivalent on facts-cert to round-trip non-cert context fields. Unifying on the batch shape (per AGENTS.md P1 locked-in decision) collapses the surface to one parser and trivially extends to a one-shot 'fetch one new cert and append to an existing batch result' workflow.",
+      "files": [
+        "internal/cli/coin_facts-cert.go",
+        "SKILL.md"
+      ],
+      "validated_outcome": "go build ./... && go vet ./...; live smoke: `coin facts-cert 50483263 --agent | jq '.data.Name'` returns \"1881-S $1\"; `coin batch --file pcgs-coin-list.csv --agent | head -1 | jq '.data.Name'` returns a coin name (no regression)"
+    },
+    {
+      "id": "images-field-strip",
+      "summary": "applyCoinResponseTransforms now deletes the stub Images: [{}, {}] key from every CoinFactsModel response. Wired into coin facts-cert (already calling the transform), coin facts-grade (already calling), coin facts-barcode (gap from PR #683 — transform call added here), and coin batch (live + cached). HasObverseImage / HasReverseImage / HasTrueViewImage / ImageReady booleans are preserved; image URLs continue to be fetched via `coin images <cert>`.",
+      "reason": "PCGS returns a 2-element stub array with no URL fields on every CoinFactsModel response when an image exists. The empty objects read as 'the image fetch failed' to a first-time consumer; the AGENTS.md P6 locked-in fix is option 2 (omit entirely) because option 1 doubles quota per call (violates VISION.md's 1,000/day budget) and option 3 (null) leaves the same confusion in a different shape. Safe: the envelope classifier (classifyPCGSEnvelope) already consumes the Images=[] + Has*Image=false heuristic earlier in resolveRead, so stripping at the response-transform layer cannot affect bogus-cert detection on the GetImagesByCertNo endpoint.",
+      "files": [
+        "internal/cli/coin_response_transform.go",
+        "internal/cli/coin_facts-cert.go",
+        "internal/cli/coin_facts-grade.go",
+        "internal/cli/coin_facts-barcode.go",
+        "SKILL.md"
+      ],
+      "validated_outcome": "go build ./... && go vet ./... && go test ./...; live smoke: `coin facts-cert 50483263 --agent | jq '.data | has(\"Images\")'` returns false; `jq '.data.HasTrueViewImage'` returns true; `coin images 50483263 --agent | jq type` returns \"object\""
+    },
+    {
+      "id": "batch-csv-export",
+      "summary": "coin batch now supports --csv (flatten the JSONL stream into a single CSV with a header row) paired with --columns (comma-separated dotted paths, e.g. cert_no,data.Name,_keep.box). Missing fields emit empty cells, not the literal string \"null\". When --columns is omitted under --csv, the header is auto-discovered from the first row's cert_no + top-level _keep.* + data.* keys. New helper file coin_batch_csv.go isolates dotted-path lookup and value→cell shaping.",
+      "reason": "AGENTS.md P7 — a one-shot pipeline from cert list to enriched flat CSV currently needs 30+ lines of Python post-processing on the batch JSONL. With the unified flat shape from PR #683, the dotted-path projector is small (<200 LOC) and reuses the existing global --csv flag. Pairs naturally with the AGENTS.md 2026-05-18 inventory workflow (parse Google Sheet → batch with _keep round-trip → CSV upload).",
+      "files": [
+        "internal/cli/coin_batch.go",
+        "internal/cli/coin_batch_csv.go",
+        "SKILL.md"
+      ],
+      "validated_outcome": "go build ./... && go vet ./... && go test ./...; live smoke: `coin batch --file pcgs-coin-list.csv --csv --columns \"_keep.box,_keep.slot,cert_no,data.Name,data.Year,data.Grade,data.PriceGuideValue\"` writes a valid CSV with one header row + one row per cert; David Hall null PriceGuideValue renders as an empty cell; `Images` column is absent from auto-headers (confirms P6 strip is also live)"
     }
   ]
 }
