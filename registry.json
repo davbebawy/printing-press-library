@@ -219,6 +219,12 @@
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "airbnb-pp-mcp",
         "transports": [
@@ -300,7 +306,13 @@
       "creator": {
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
-      }
+      },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ]
     },
     {
       "name": "allrecipes",
@@ -510,6 +522,12 @@
         "handle": "bwishan",
         "name": "Brian Wishan"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "amazon-orders-pp-mcp",
         "transports": [
@@ -653,6 +671,12 @@
       "path": "library/education/ankiweb",
       "printer": "paulb",
       "printer_name": "Paul Bockewitz",
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "ankiweb-pp-mcp",
         "transports": [
@@ -1513,6 +1537,12 @@
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "booking-com-pp-mcp",
         "transports": [
@@ -3055,6 +3085,12 @@
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "ebay-pp-mcp",
         "transports": [
@@ -3291,6 +3327,12 @@
         "handle": "horknfbr",
         "name": "horknfbr"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "erank-pp-mcp",
         "transports": [
@@ -3641,6 +3683,12 @@
         "handle": "cathrynlavery",
         "name": "Cathryn Lavery"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "facebook-marketplace-pp-mcp",
         "transports": [
@@ -4208,6 +4256,12 @@
       "path": "library/other/gisis",
       "printer": "6myfzqx6bv-ctrl",
       "printer_name": "ivory_elephant",
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "gisis-pp-mcp",
         "transports": [
@@ -4643,6 +4697,12 @@
         "handle": "azaaron",
         "name": "mvanhorn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "gravitus-pp-mcp",
         "transports": [
@@ -4848,6 +4908,12 @@
         "handle": "jwmoss",
         "name": "Jonathan Moss"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "harris-teeter-pp-mcp",
         "transports": [
@@ -5246,6 +5312,12 @@
         "handle": "omarshahine",
         "name": "Omar Shahine"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "jimmy-johns-pp-mcp",
         "transports": [
@@ -6284,6 +6356,12 @@
         "handle": "nickscarabosio",
         "name": "Nick Scarabosio"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "myfitnesspal-pp-mcp",
         "transports": [
@@ -7159,6 +7237,12 @@
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "ordertogo-pp-mcp",
         "transports": [
@@ -7538,6 +7622,12 @@
         "handle": "mvanhorn",
         "name": "Matt Van Horn"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "podcast-goat-pp-mcp",
         "transports": [
@@ -7651,6 +7741,12 @@
         "handle": "salmonumbrella",
         "name": "salmonumbrella"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "pointhound-pp-mcp",
         "transports": [
@@ -9337,6 +9433,12 @@
         "handle": "quoxientzero",
         "name": "Zain Haseeb"
       },
+      "contributors": [
+        {
+          "handle": "tmchow",
+          "name": "Trevin Chow"
+        }
+      ],
       "mcp": {
         "binary": "skool-pp-mcp",
         "transports": [
