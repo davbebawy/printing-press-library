@@ -359,7 +359,7 @@ func analyzePerformanceSnapshots(cmd *cobra.Command, db *store.Store, since, gro
 		_ = json.Unmarshal([]byte(metricsRaw), &metrics)
 		var rec resolvedPostRecord
 		_ = json.Unmarshal([]byte(tweetRaw), &rec)
-		key := performanceGroupKey(dims, label, capturedAt, &rec)
+		key := performanceGroupKey(dims, label, &rec)
 		a := groups[key]
 		if a == nil {
 			a = &accum{total: map[string]float64{}}
@@ -397,7 +397,7 @@ func analyzePerformanceSnapshots(cmd *cobra.Command, db *store.Store, since, gro
 	return out, nil
 }
 
-func performanceGroupKey(dims map[string]bool, label, capturedAt string, rec *resolvedPostRecord) string {
+func performanceGroupKey(dims map[string]bool, label string, rec *resolvedPostRecord) string {
 	if len(dims) == 0 {
 		return "all"
 	}
@@ -408,8 +408,8 @@ func performanceGroupKey(dims map[string]bool, label, capturedAt string, rec *re
 	if dims["type"] && rec != nil {
 		parts = append(parts, "type="+rec.PostType)
 	}
-	if dims["hour"] {
-		if t, err := time.Parse(time.RFC3339, capturedAt); err == nil {
+	if dims["hour"] && rec != nil {
+		if t, err := time.Parse(time.RFC3339, rec.CreatedAt); err == nil {
 			parts = append(parts, fmt.Sprintf("hour=%02d", t.Hour()))
 		}
 	}

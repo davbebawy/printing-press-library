@@ -149,11 +149,20 @@ func TestPerformanceHasLinkOnlyCountsURLEntities(t *testing.T) {
 	withURL := &resolvedPostRecord{Entities: map[string]any{
 		"urls": []any{map[string]any{"expanded_url": "https://example.com"}},
 	}}
-	if key := performanceGroupKey(dims, "", "", hashtagOnly); key != "has_link=false" {
+	if key := performanceGroupKey(dims, "", hashtagOnly); key != "has_link=false" {
 		t.Fatalf("hashtag-only key = %q", key)
 	}
-	if key := performanceGroupKey(dims, "", "", withURL); key != "has_link=true" {
+	if key := performanceGroupKey(dims, "", withURL); key != "has_link=true" {
 		t.Fatalf("url key = %q", key)
+	}
+}
+
+func TestPerformanceHourGroupsByPostCreationTime(t *testing.T) {
+	dims := parseIncludeSet("hour")
+	rec := &resolvedPostRecord{CreatedAt: "2026-01-01T03:15:00Z"}
+	key := performanceGroupKey(dims, "", rec)
+	if key != "hour=03" {
+		t.Fatalf("hour key = %q", key)
 	}
 }
 
