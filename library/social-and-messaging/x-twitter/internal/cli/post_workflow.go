@@ -347,6 +347,12 @@ func normalizeTweetRecord(input string, raw json.RawMessage, users map[string]*p
 	return rec, nil
 }
 
+func normalizeTweetRecordWithOwnID(raw json.RawMessage, users map[string]*postAuthorSummary, source, localState string, include map[string]bool) (*resolvedPostRecord, error) {
+	var obj map[string]any
+	_ = json.Unmarshal(raw, &obj)
+	return normalizeTweetRecord(stringField(obj, "id"), raw, users, source, localState, include)
+}
+
 func cacheResolvedPost(cmd *cobra.Command, dbPath string, data json.RawMessage) error {
 	if dbPath == "" {
 		dbPath = defaultDBPath("x-twitter-pp-cli")

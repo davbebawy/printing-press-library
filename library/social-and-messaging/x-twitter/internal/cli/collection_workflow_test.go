@@ -4,9 +4,14 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/mvanhorn/printing-press-library/library/social-and-messaging/x-twitter/internal/store"
+	"github.com/spf13/cobra"
 )
 
 func TestCollectionSaveInputs(t *testing.T) {
@@ -73,5 +78,27 @@ func TestNormalizeSearchTweetRecordUsesTweetIDAsInput(t *testing.T) {
 	}
 	if rec.Input != "123" {
 		t.Fatalf("Input = %q, want tweet ID", rec.Input)
+	}
+}
+
+func TestListCollectionItemsAllowsExistingEmptyCollection(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-twitter.db")
+	db, err := store.OpenWithContext(context.Background(), dbPath)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	if _, err := db.DB().ExecContext(context.Background(), `INSERT INTO post_collections(name, created_at, updated_at) VALUES('empty', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatalf("insert empty collection: %v", err)
+	}
+	defer db.Close()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	items, err := listCollectionItems(cmd, db, "empty", 100, false)
+	if err != nil {
+		t.Fatalf("listCollectionItems returned error: %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("items len = %d, want 0", len(items))
 	}
 }

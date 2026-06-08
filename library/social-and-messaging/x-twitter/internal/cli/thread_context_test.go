@@ -78,4 +78,30 @@ func TestLoadLocalContextRepliesReadsTweetsTableAndSkipsSeen(t *testing.T) {
 	if replies[0].TweetID != "reply" || replies[0].InReplyTo != "focus" {
 		t.Fatalf("reply = %+v", replies[0])
 	}
+	if replies[0].Input != "reply" {
+		t.Fatalf("reply Input = %q, want reply tweet ID", replies[0].Input)
+	}
+}
+
+func TestAssignReplyDepthsComputesNestedDepthAndFilters(t *testing.T) {
+	replies := []threadContextReply{
+		{
+			resolvedPostRecord: resolvedPostRecord{TweetID: "direct"},
+			InReplyTo:          "focus",
+		},
+		{
+			resolvedPostRecord: resolvedPostRecord{TweetID: "nested"},
+			InReplyTo:          "direct",
+		},
+	}
+
+	shallow := assignReplyDepths(append([]threadContextReply(nil), replies...), "focus", 1)
+	if len(shallow) != 1 || shallow[0].TweetID != "direct" || shallow[0].Depth != 1 {
+		t.Fatalf("shallow replies = %+v", shallow)
+	}
+
+	deep := assignReplyDepths(append([]threadContextReply(nil), replies...), "focus", 2)
+	if len(deep) != 2 || deep[0].Depth != 1 || deep[1].Depth != 2 {
+		t.Fatalf("deep replies = %+v", deep)
+	}
 }

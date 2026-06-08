@@ -374,9 +374,27 @@ func listCollectionItems(cmd *cobra.Command, db *store.Store, collection string,
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, notFoundErr(fmt.Errorf("collection %q has no saved posts", collection))
+		exists, err := collectionExists(cmd, db, collection)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, notFoundErr(fmt.Errorf("collection %q not found", collection))
+		}
 	}
 	return items, nil
+}
+
+func collectionExists(cmd *cobra.Command, db *store.Store, collection string) (bool, error) {
+	var one int
+	err := db.DB().QueryRowContext(cmd.Context(), `SELECT 1 FROM post_collections WHERE name = ?`, collection).Scan(&one)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func resolvePostsFromRecentSearch(cmd *cobra.Command, flags *rootFlags, query string, limit int) ([]*resolvedPostRecord, error) {
@@ -436,9 +454,7 @@ func resolvePostsFromRecentSearch(cmd *cobra.Command, flags *rootFlags, query st
 }
 
 func normalizeSearchTweetRecord(raw json.RawMessage, userByID map[string]*postAuthorSummary, include map[string]bool) (*resolvedPostRecord, error) {
-	var tweetObj map[string]any
-	_ = json.Unmarshal(raw, &tweetObj)
-	return normalizeTweetRecord(stringField(tweetObj, "id"), raw, userByID, "live", "not_synced", include)
+	return normalizeTweetRecordWithOwnID(raw, userByID, "live", "not_synced", include)
 }
 
 func writeCollectionExport(w io.Writer, collection string, items []collectionItemSnapshot, format string) error {

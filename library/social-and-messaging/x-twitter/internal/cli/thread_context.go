@@ -129,7 +129,7 @@ func buildThreadContext(cmd *cobra.Command, flags *rootFlags, input, dbPath, mod
 		}
 	}
 	if includeReplies {
-		replies, source, gaps := loadContextReplies(cmd, flags, focus, dbPath, mode, include, limit, seen)
+		replies, source, gaps := loadContextReplies(cmd, flags, focus, dbPath, mode, include, limit, depth, seen)
 		result.Replies = replies
 		result.Gaps = append(result.Gaps, gaps...)
 		if source != "" && source != focus.Source {
@@ -198,7 +198,7 @@ func referencedID(rec *resolvedPostRecord, refType string) string {
 	return ""
 }
 
-func loadContextReplies(cmd *cobra.Command, flags *rootFlags, focus *resolvedPostRecord, dbPath, mode string, include map[string]bool, limit int, skipIDs map[string]bool) ([]threadContextReply, string, []string) {
+func loadContextReplies(cmd *cobra.Command, flags *rootFlags, focus *resolvedPostRecord, dbPath, mode string, include map[string]bool, limit, maxDepth int, skipIDs map[string]bool) ([]threadContextReply, string, []string) {
 	var all []threadContextReply
 	var gaps []string
 	if dbPath == "" {
@@ -222,6 +222,7 @@ func loadContextReplies(cmd *cobra.Command, flags *rootFlags, focus *resolvedPos
 		}
 	}
 	all = dedupeContextReplies(all)
+	all = assignReplyDepths(all, focus.TweetID, maxDepth)
 	sort.SliceStable(all, func(i, j int) bool {
 		if all[i].CreatedAt != all[j].CreatedAt {
 			return all[i].CreatedAt < all[j].CreatedAt
@@ -274,7 +275,7 @@ func loadLocalContextReplies(cmd *cobra.Command, focus *resolvedPostRecord, dbPa
 		if err := rows.Scan(&data); err != nil || !data.Valid {
 			continue
 		}
-		rec, err := normalizeTweetRecord(focus.Input, json.RawMessage(data.String), nil, "local", "synced", include)
+		rec, err := normalizeTweetRecordWithOwnID(json.RawMessage(data.String), nil, "local", "synced", include)
 		if err != nil || rec.TweetID == focus.TweetID {
 			continue
 		}
@@ -285,7 +286,7 @@ func loadLocalContextReplies(cmd *cobra.Command, focus *resolvedPostRecord, dbPa
 		if parent == "" {
 			continue
 		}
-		reply := threadContextReply{resolvedPostRecord: *rec, InReplyTo: parent, Depth: replyDepth(rec, focus.TweetID, 1)}
+		reply := threadContextReply{resolvedPostRecord: *rec, InReplyTo: parent, Depth: 1}
 		replies = append(replies, reply)
 		seen[rec.TweetID] = true
 		if len(replies) >= limit {
@@ -341,7 +342,7 @@ func loadLiveContextReplies(cmd *cobra.Command, flags *rootFlags, focus *resolve
 		if len(replies) >= limit {
 			break
 		}
-		rec, err := normalizeTweetRecord(focus.Input, raw, users, "live", "not_synced", include)
+		rec, err := normalizeTweetRecordWithOwnID(raw, users, "live", "not_synced", include)
 		if err != nil || rec.TweetID == focus.TweetID {
 			continue
 		}
@@ -352,19 +353,54 @@ func loadLiveContextReplies(cmd *cobra.Command, flags *rootFlags, focus *resolve
 		if parent == "" {
 			continue
 		}
-		replies = append(replies, threadContextReply{resolvedPostRecord: *rec, InReplyTo: parent, Depth: replyDepth(rec, focus.TweetID, 1)})
+		replies = append(replies, threadContextReply{resolvedPostRecord: *rec, InReplyTo: parent, Depth: 1})
 	}
 	return replies, nil
 }
 
-func replyDepth(rec *resolvedPostRecord, focusID string, fallback int) int {
-	if rec == nil {
-		return fallback
+func assignReplyDepths(replies []threadContextReply, focusID string, maxDepth int) []threadContextReply {
+	if maxDepth < 1 {
+		maxDepth = 1
 	}
-	if referencedID(rec, "replied_to") == focusID {
-		return 1
+	byID := make(map[string]threadContextReply, len(replies))
+	for _, reply := range replies {
+		if reply.TweetID != "" {
+			byID[reply.TweetID] = reply
+		}
 	}
-	return fallback
+	cache := map[string]int{}
+	visiting := map[string]bool{}
+	var depthFor func(string) int
+	depthFor = func(id string) int {
+		if depth, ok := cache[id]; ok {
+			return depth
+		}
+		if visiting[id] {
+			return 1
+		}
+		visiting[id] = true
+		defer delete(visiting, id)
+
+		reply, ok := byID[id]
+		if !ok || reply.InReplyTo == "" || reply.InReplyTo == focusID {
+			cache[id] = 1
+			return 1
+		}
+		depth := 1
+		if _, ok := byID[reply.InReplyTo]; ok {
+			depth = depthFor(reply.InReplyTo) + 1
+		}
+		cache[id] = depth
+		return depth
+	}
+	out := replies[:0]
+	for _, reply := range replies {
+		reply.Depth = depthFor(reply.TweetID)
+		if reply.Depth <= maxDepth {
+			out = append(out, reply)
+		}
+	}
+	return out
 }
 
 func dedupeContextReplies(in []threadContextReply) []threadContextReply {
