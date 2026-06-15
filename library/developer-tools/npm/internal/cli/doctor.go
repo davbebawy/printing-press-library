@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"npm-pp-cli/internal/client"
-	"npm-pp-cli/internal/config"
-	"npm-pp-cli/internal/store"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/client"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/config"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/store"
 )
 
 // looksLikeDoctorInterstitial reports whether the response body matches a known

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"npm-pp-cli/internal/client"
-	"npm-pp-cli/internal/config"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/client"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/config"
 )
 
 var version = "1.0.0"

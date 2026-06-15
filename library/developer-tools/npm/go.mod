@@ -1,4 +1,4 @@
-module npm-pp-cli
+module github.com/mvanhorn/printing-press-library/library/developer-tools/npm
 
 go 1.26.3
 

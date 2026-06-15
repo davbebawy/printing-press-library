@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"npm-pp-cli/internal/client"
-	"npm-pp-cli/internal/store"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/client"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/store"
 )
 
 // isNetworkError returns true for errors caused by network connectivity issues

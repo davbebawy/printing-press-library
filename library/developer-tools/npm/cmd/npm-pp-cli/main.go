@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"npm-pp-cli/internal/cli"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/cli"
 )
 
 func main() {

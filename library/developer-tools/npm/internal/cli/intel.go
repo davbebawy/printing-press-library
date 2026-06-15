@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"npm-pp-cli/internal/client"
-	"npm-pp-cli/internal/config"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/client"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/config"
 
 	"github.com/spf13/cobra"
 )

@@ -14,12 +14,12 @@ import (
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"npm-pp-cli/internal/cli"
-	"npm-pp-cli/internal/cliutil"
-	"npm-pp-cli/internal/client"
-	"npm-pp-cli/internal/config"
-	"npm-pp-cli/internal/mcp/cobratree"
-	"npm-pp-cli/internal/store"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/cli"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/cliutil"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/client"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/config"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/mcp/cobratree"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/store"
 )
 
 // RegisterTools registers all API operations as MCP tools.

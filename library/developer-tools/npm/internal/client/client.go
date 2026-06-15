@@ -20,8 +20,8 @@ import (
 	"time"
 	"github.com/enetx/surf"
 
-	"npm-pp-cli/internal/cliutil"
-	"npm-pp-cli/internal/config"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/cliutil"
+	"github.com/mvanhorn/printing-press-library/library/developer-tools/npm/internal/config"
 )
 
 type Client struct {
