@@ -7118,6 +7118,41 @@
       }
     },
     {
+      "name": "npm",
+      "category": "developer-tools",
+      "api": "npm",
+      "description": "Research npm packages by metadata, downloads, maintainers, freshness, and dependency risk.",
+      "search_terms": [
+        "npm",
+        "npm-pp-cli",
+        "Research npm packages by metadata, downloads, maintainers, freshness, and dependency risk.",
+        "Package summary",
+        "package",
+        "Summarize an npm package with latest version, maintainers, dependencies, publish freshness, and last-month downloads.",
+        "Package comparison",
+        "compare",
+        "Compare npm packages by adoption, freshness, maintainers, and dependency surface.",
+        "Package risk scoring",
+        "risk",
+        "Score npm package maintenance and adoption risk with explicit signals."
+      ],
+      "path": "library/developer-tools/npm",
+      "printer": "hnshah",
+      "printer_name": "Hiten Shah",
+      "mcp": {
+        "binary": "npm-pp-mcp",
+        "transports": [
+          "stdio"
+        ],
+        "tool_count": 5,
+        "public_tool_count": 5,
+        "auth_type": "none",
+        "env_vars": [],
+        "mcp_ready": "full",
+        "spec_format": "openapi3"
+      }
+    },
+    {
       "name": "nse-india",
       "category": "developer-tools",
       "api": "NSE India",
