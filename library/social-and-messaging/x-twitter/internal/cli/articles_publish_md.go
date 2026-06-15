@@ -7,8 +7,8 @@
 // paragraph, header-one, header-two, unordered-list-item, ordered-list-item,
 // blockquote, fenced code blocks, markdown table blocks, markdown image blocks,
 // tweet embeds, dividers, plus bold/italic inline styles and [text](url)
-// inline links (LINK entities). HTML comment lines are stripped. Cover image
-// uses the captured upload + UpdateCoverMedia flow.
+// inline links (LINK entities), and inline `code` spans. HTML comment lines
+// are stripped. Cover image uses the captured upload + UpdateCoverMedia flow.
 
 package cli
 
@@ -73,19 +73,20 @@ type draftEntityValue struct {
 func newNovelArticlesPublishMdCmd(flags *rootFlags) *cobra.Command {
 	var post bool
 	var draft bool
+	var updateID string
 	cmd := &cobra.Command{
 		Use:     "articles-publish-md <markdown-file>",
 		Short:   "Convert a markdown file to an X Article (preview by default; --draft or --post to write)",
-		Long:    "Parses frontmatter (title, cover, tags) and body, converts the body to the Draft.js content_state JSON X's Articles editor accepts. Previews the payload by default (no API call); pass --draft to save a draft (not published) or --post to create and publish the article publicly.",
-		Example: "  x-twitter-pp-cli articles-publish-md draft.md",
+		Long:    "Parses frontmatter (title, cover, tags) and body, converts the body to the Draft.js content_state JSON X's Articles editor accepts. Previews the payload by default (no API call); pass --draft to save a new draft, --post to create and publish publicly, or --update <article_id> to update an existing draft in place.",
+		Example: "  x-twitter-pp-cli articles-publish-md draft.md\n  x-twitter-pp-cli articles-publish-md draft.md --update 1750000000000000000",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Dry-run probes call with no file arg: short-circuit before the
-			// required-arg check so verify can exercise the command cleanly.
-			if dryRunOK(flags) {
-				return nil
-			}
 			if len(args) == 0 {
+				// Dry-run probes call with no file arg: short-circuit before the
+				// required-arg check so verify can exercise the command cleanly.
+				if dryRunOK(flags) {
+					return nil
+				}
 				return cmd.Help()
 			}
 			data, err := os.ReadFile(args[0])
@@ -97,6 +98,56 @@ func newNovelArticlesPublishMdCmd(flags *rootFlags) *cobra.Command {
 				return err
 			}
 			cs := MarkdownBodyToDraftJS(parsed.Body)
+			if strings.TrimSpace(updateID) != "" {
+				if post {
+					return usageErr(fmt.Errorf("--update cannot be combined with --post; use `articles update-md --article-id %s --republish` for published articles", strings.TrimSpace(updateID)))
+				}
+				payload := map[string]any{
+					"article_id":    strings.TrimSpace(updateID),
+					"title":         parsed.Frontmatter.Title,
+					"cover":         parsed.Frontmatter.Cover,
+					"content_state": cs,
+				}
+				if flags.dryRun {
+					enc := json.NewEncoder(cmd.OutOrStdout())
+					if !flags.asJSON {
+						fmt.Fprintln(cmd.OutOrStdout(), "── Article update payload (dry-run, no API call) ──")
+						enc.SetIndent("", "  ")
+					}
+					return enc.Encode(payload)
+				}
+				if os.Getenv("PRINTING_PRESS_VERIFY") == "1" {
+					fmt.Fprintln(cmd.OutOrStdout(), "verify-env: skipping article update")
+					return nil
+				}
+				c, err := flags.newClient()
+				if err != nil {
+					return err
+				}
+				deps := articleUpdateDeps{
+					post: c,
+					fetchSlice: func(ctx context.Context, lifecycle string) (json.RawMessage, error) {
+						return fetchArticleSlice(ctx, c, lifecycle)
+					},
+					uploadImage: func(p string) (string, error) {
+						return c.UploadArticleImage(cmd.Context(), p)
+					},
+				}
+				result, err := updateMarkdownArticle(cmd.Context(), deps, articleUpdateOptions{
+					articleID:    strings.TrimSpace(updateID),
+					title:        parsed.Frontmatter.Title,
+					coverPath:    parsed.Frontmatter.Cover,
+					contentState: cs,
+				})
+				if err != nil {
+					return classifyAPIError(err, flags)
+				}
+				if flags.asJSON || !isTerminal(cmd.OutOrStdout()) {
+					return json.NewEncoder(cmd.OutOrStdout()).Encode(result)
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "updated draft article %s\n%s\n", result.ArticleID, result.URL)
+				return nil
+			}
 			payload := map[string]any{
 				"title":         parsed.Frontmatter.Title,
 				"cover":         parsed.Frontmatter.Cover,
@@ -147,6 +198,7 @@ func newNovelArticlesPublishMdCmd(flags *rootFlags) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create the article as a draft without publishing")
 	cmd.Flags().BoolVar(&post, "post", false, "Create and publish the article publicly (default: preview only)")
+	cmd.Flags().StringVar(&updateID, "update", "", "Update an existing draft article by rest_id instead of creating a new draft")
 	return cmd
 }
 
@@ -432,14 +484,15 @@ func parseFrontmatter(yamlSrc string, fm *articleFrontmatter) {
 }
 
 // MarkdownBodyToDraftJS converts a markdown body to a Draft.js content_state.
-// Supports: paragraph, header-one (# ), header-two (## ), unordered-list-item,
+// Supports: paragraph, header-one (# ), header-two (## and deeper headings),
 // ordered-list-item, blockquote, markdown image lines, standalone tweet URLs,
 // standalone dividers (---), markdown tables, plus inline bold (**...**) and
-// italic (*...*). Fenced code blocks and markdown tables are emitted as X
-// Articles MARKDOWN entities bound to atomic Draft.js blocks. Image lines are
-// emitted as placeholder MEDIA entities in dry-run output, then rebound to
-// uploaded media IDs before live publish. Setext headings are intentionally
-// unsupported; use ## for header-two because --- is reserved for dividers.
+// italic (*...*) and code (`...`). Fenced code blocks and markdown tables are
+// emitted as X Articles MARKDOWN entities bound to atomic Draft.js blocks.
+// Image lines are emitted as placeholder MEDIA entities in dry-run output, then
+// rebound to uploaded media IDs before live publish. Setext headings are
+// intentionally unsupported; use ## for header-two because --- is reserved for
+// dividers.
 func MarkdownBodyToDraftJS(md string) draftContentState {
 	cs := draftContentState{}
 	lines := strings.Split(md, "\n")
@@ -501,6 +554,13 @@ func MarkdownBodyToDraftJS(md string) draftContentState {
 		case strings.HasPrefix(trim, "## "):
 			blk.Type = "header-two"
 			blk.Text = strings.TrimSpace(trim[3:])
+		case strings.HasPrefix(trim, "###"):
+			if headingText, ok := downgradeMarkdownHeading(trim); ok {
+				blk.Type = "header-two"
+				blk.Text = headingText
+			} else {
+				blk.Text = trim
+			}
 		case strings.HasPrefix(trim, "> "):
 			blk.Type = "blockquote"
 			blk.Text = strings.TrimSpace(trim[2:])
@@ -717,6 +777,24 @@ func splitMarkdownTableRow(line string) []string {
 	return strings.Split(trimmed, "|")
 }
 
+func downgradeMarkdownHeading(line string) (string, bool) {
+	hashes := 0
+	for hashes < len(line) && line[hashes] == '#' {
+		hashes++
+	}
+	if hashes < 3 {
+		return "", false
+	}
+	if hashes >= len(line) || line[hashes] != ' ' {
+		return "", false
+	}
+	text := strings.TrimSpace(line[hashes+1:])
+	if text == "" {
+		return "", false
+	}
+	return text, true
+}
+
 // linkSpan describes one [text](url) span found by extractInlineSpans, with
 // Offset/Length in UTF-16 code units over the cleaned block text.
 type linkSpan struct {
@@ -737,6 +815,17 @@ func extractInlineSpans(s string) (string, []inlineStyle, []linkSpan) {
 	out := strings.Builder{}
 	i := 0
 	for i < len(s) {
+		if s[i] == '`' {
+			end := strings.Index(s[i+1:], "`")
+			if end > 0 {
+				inner := s[i+1 : i+1+end]
+				offset := utf16Len(out.String())
+				out.WriteString(inner)
+				ranges = append(ranges, inlineStyle{Offset: offset, Length: utf16Len(inner), Style: "CODE"})
+				i = i + 1 + end + 1
+				continue
+			}
+		}
 		// Bold first (**...**) so it doesn't get consumed as italic.
 		if i+2 <= len(s) && s[i:i+2] == "**" {
 			end := strings.Index(s[i+2:], "**")
@@ -837,6 +926,17 @@ func extractInlineStyles(s string) (string, []inlineStyle) {
 	out := strings.Builder{}
 	i := 0
 	for i < len(s) {
+		if s[i] == '`' {
+			end := strings.Index(s[i+1:], "`")
+			if end > 0 {
+				inner := s[i+1 : i+1+end]
+				offset := utf16Len(out.String())
+				out.WriteString(inner)
+				ranges = append(ranges, inlineStyle{Offset: offset, Length: utf16Len(inner), Style: "CODE"})
+				i = i + 1 + end + 1
+				continue
+			}
+		}
 		// Bold first (**...**) so it doesn't get consumed as italic.
 		if i+2 <= len(s) && s[i:i+2] == "**" {
 			end := strings.Index(s[i+2:], "**")

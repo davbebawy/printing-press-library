@@ -203,6 +203,43 @@ func TestUpdateMarkdownArticleUploadsNewImages(t *testing.T) {
 	}
 }
 
+func TestUpdateMarkdownArticleUpdatesCoverWhenPresent(t *testing.T) {
+	poster := &fakeArticlePoster{}
+	deps := testDeps(t, poster, "111", "Draft")
+	uploads := []string{}
+	deps.uploadImage = func(path string) (string, error) {
+		uploads = append(uploads, path)
+		return "media-cover", nil
+	}
+
+	result, err := updateMarkdownArticle(context.Background(), deps, articleUpdateOptions{
+		articleID:    "111",
+		coverPath:    "./cover.jpg",
+		contentState: MarkdownBodyToDraftJS("Updated"),
+	})
+	if err != nil {
+		t.Fatalf("updateMarkdownArticle returned error: %v", err)
+	}
+	if strings.Join(uploads, ",") != "./cover.jpg" {
+		t.Fatalf("expected cover upload only, got %#v", uploads)
+	}
+	wantOps := []string{"ArticleEntityUpdateContent", "ArticleEntityUpdateCoverMedia"}
+	if strings.Join(poster.ops(), ",") != strings.Join(wantOps, ",") {
+		t.Fatalf("unexpected call sequence: %v", poster.ops())
+	}
+	coverVars, _ := poster.calls[1].body["variables"].(map[string]any)
+	if coverVars["articleEntityId"] != "111" {
+		t.Fatalf("unexpected cover variables: %#v", coverVars)
+	}
+	coverMedia, _ := coverVars["coverMedia"].(map[string]any)
+	if coverMedia["media_id"] != "media-cover" || coverMedia["media_category"] != "DraftTweetImage" {
+		t.Fatalf("unexpected coverMedia: %#v", coverMedia)
+	}
+	if result.CoverMediaID != "media-cover" {
+		t.Fatalf("CoverMediaID = %q, want media-cover", result.CoverMediaID)
+	}
+}
+
 func TestUpdateMarkdownArticleMissingArticleID(t *testing.T) {
 	poster := &fakeArticlePoster{}
 	fetchCalls := 0

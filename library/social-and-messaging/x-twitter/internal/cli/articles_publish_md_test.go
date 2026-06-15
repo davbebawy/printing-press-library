@@ -1,6 +1,10 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -38,6 +42,34 @@ func TestMarkdownBodyToDraftJSImageLine(t *testing.T) {
 	}
 	if entity.Value.Data["alt_text"] != "body alt" {
 		t.Fatalf("expected alt_text to be retained, got %#v", entity.Value.Data["alt_text"])
+	}
+}
+
+func TestArticlesPublishMdUpdateDryRunWithFilePrintsPreview(t *testing.T) {
+	dir := t.TempDir()
+	md := filepath.Join(dir, "article.md")
+	if err := os.WriteFile(md, []byte("---\ntitle: Dry Run\ncover: ./cover.jpg\n---\n\nBody"), 0o600); err != nil {
+		t.Fatalf("write markdown: %v", err)
+	}
+
+	var flags rootFlags
+	cmd := newRootCmd(&flags)
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"articles-publish-md", md, "--update", "123", "--dry-run", "--json"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("articles-publish-md dry-run failed: %v\n%s", err, out.String())
+	}
+	if out.Len() == 0 {
+		t.Fatalf("expected dry-run preview output")
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("preview output is not JSON: %v\n%s", err, out.String())
+	}
+	if payload["article_id"] != "123" || payload["title"] != "Dry Run" || payload["cover"] != "./cover.jpg" {
+		t.Fatalf("unexpected preview payload: %#v", payload)
 	}
 }
 
@@ -310,6 +342,36 @@ func TestMarkdownBodyToDraftJSBoldInBlockquote(t *testing.T) {
 	style := blk.InlineStyleRanges[0]
 	if style.Offset != 0 || style.Length != 10 || style.Style != "Bold" {
 		t.Fatalf("unexpected style range: %#v", style)
+	}
+}
+
+func TestMarkdownBodyToDraftJSInlineCode(t *testing.T) {
+	contentState := MarkdownBodyToDraftJS("Run `x-twitter-pp-cli` now")
+
+	blk := contentState.Blocks[0]
+	if blk.Text != "Run x-twitter-pp-cli now" {
+		t.Fatalf("unexpected text: %q", blk.Text)
+	}
+	if len(blk.InlineStyleRanges) != 1 {
+		t.Fatalf("expected one inline code style, got %d", len(blk.InlineStyleRanges))
+	}
+	style := blk.InlineStyleRanges[0]
+	if style.Offset != 4 || style.Length != 16 || style.Style != "CODE" {
+		t.Fatalf("unexpected CODE style range: %#v", style)
+	}
+}
+
+func TestMarkdownBodyToDraftJSDowngradesDeepHeadings(t *testing.T) {
+	contentState := MarkdownBodyToDraftJS("### Third\n\n#### Fourth")
+
+	if len(contentState.Blocks) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(contentState.Blocks))
+	}
+	for i, want := range []string{"Third", "Fourth"} {
+		blk := contentState.Blocks[i]
+		if blk.Type != "header-two" || blk.Text != want {
+			t.Fatalf("block %d = %q/%q, want header-two/%q", i, blk.Type, blk.Text, want)
+		}
 	}
 }
 
