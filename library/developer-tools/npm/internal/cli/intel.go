@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"npm-pp-cli/internal/client"
+	"npm-pp-cli/internal/config"
 
 	"github.com/spf13/cobra"
 )
@@ -182,12 +183,18 @@ func fetchPackageDocument(c *client.Client, name string) (npmPackageDocument, er
 }
 
 func fetchLastMonthDownloads(c *client.Client, name string) (int, error) {
-	originalBase := c.BaseURL
-	if strings.TrimRight(originalBase, "/") == "https://registry.npmjs.org" {
-		c.BaseURL = "https://api.npmjs.org"
-		defer func() { c.BaseURL = originalBase }()
+	downloadClient := c
+	if strings.TrimRight(c.BaseURL, "/") == "https://registry.npmjs.org" {
+		cfg := config.Config{BaseURL: "https://api.npmjs.org"}
+		if c.Config != nil {
+			cfg = *c.Config
+			cfg.BaseURL = "https://api.npmjs.org"
+		}
+		downloadClient = client.New(&cfg, c.ConfiguredTimeout(), c.RateLimit())
+		downloadClient.DryRun = c.DryRun
+		downloadClient.NoCache = c.NoCache
 	}
-	data, err := c.Get("/downloads/point/last-month/"+escapePackageName(name), nil)
+	data, err := downloadClient.Get("/downloads/point/last-month/"+escapePackageName(name), nil)
 	if err != nil {
 		return 0, err
 	}
