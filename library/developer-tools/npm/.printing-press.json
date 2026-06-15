@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_at": "2026-06-15T06:16:51Z",
-  "printing_press_version": "4.2.1",
+  "printing_press_version": "4.24.0",
   "api_name": "npm",
   "display_name": "npm",
   "cli_name": "npm-pp-cli",

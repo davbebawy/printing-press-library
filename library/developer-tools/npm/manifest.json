@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "npm-pp-mcp",
   "display_name": "npm",
-  "version": "4.2.1",
+  "version": "4.24.0",
   "description": "Research npm packages by metadata, downloads, maintainers, freshness, and dependency risk.",
   "author": {
     "name": "CLI Printing Press"
